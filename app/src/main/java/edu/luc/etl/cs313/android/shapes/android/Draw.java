@@ -43,7 +43,7 @@ public class Draw implements Visitor<Void> {
     @Override
     public Void onFill(final Fill f) {
         final Style oldStyle = paint.getStyle();
-        paint.setStyle(Style.FILL);
+        paint.setStyle(Style.FILL_AND_STROKE);
         f.getShape().accept(this);
         paint.setStyle(oldStyle);
         return null;
@@ -58,10 +58,9 @@ public class Draw implements Visitor<Void> {
 
     @Override
     public Void onLocation(final Location l) {
-        canvas.save();
         canvas.translate(l.getX(), l.getY());
         l.getShape().accept(this);
-        canvas.restore();
+        canvas.translate(-l.getX(), -l.getY());
         return null;
     }
 
@@ -83,17 +82,22 @@ public class Draw implements Visitor<Void> {
     @Override
     public Void onPolygon(final Polygon poly) {
         final List<? extends Point> points = poly.getPoints();
-        if (points != null && !points.isEmpty()) {
-            final Path path = new Path();
-            final Point startPoint = points.get(0);
-            path.moveTo(startPoint.getX(), startPoint.getY());
-
-            for (int i = 1; i < points.size(); i++) {
-                final Point currentPoint = points.get(i);
-                path.lineTo(currentPoint.getX(), currentPoint.getY());
+        if (points != null && points.size() > 1) {
+            final float[] pts = new float[points.size() * 4];
+            int i = 0;
+            for (int j = 0; j < points.size() - 1; j++) {
+                pts[i++] = points.get(j).getX();
+                pts[i++] = points.get(j).getY();
+                pts[i++] = points.get(j + 1).getX();
+                pts[i++] = points.get(j + 1).getY();
             }
-            path.close();
-            canvas.drawPath(path, paint);
+
+            pts[i++] = points.get(points.size() - 1).getX();
+            pts[i++] = points.get(points.size() - 1).getY();
+            pts[i++] = points.get(0).getX();
+            pts[i++] = points.get(0).getY();
+
+            canvas.drawLines(pts, paint);
         }
         return null;
     }
